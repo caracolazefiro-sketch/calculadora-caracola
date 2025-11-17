@@ -90,7 +90,7 @@
 </div>
 
 <script>
-  const data = JSON.parse(localStorage.getItem('caracolaV7')) || {
+  const data = JSON.parse(localStorage.getItem('caracolaFINAL')) || {
     nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
       {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
@@ -108,17 +108,17 @@
   let gaugeChart = null;
 
   function go(n) {
-    document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
-    document.getElementById(n==='Editor'?'slideEditor':'slide'+n).classList.add('active');
-    if (n===3) renderLista();
-    if (n===4) renderResumen();
+    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
+    document.getElementById(n === 'Editor' ? 'slideEditor' : 'slide' + n).classList.add('active');
+    if (n === 3) renderLista();
+    if (n === 4) renderResumen();
   }
 
   function calcDias() {
     const i = document.getElementById('fechaInicio').value;
     const f = document.getElementById('fechaFin').value;
     if (i && f) {
-      const dias = Math.round ty((new Date(f) - new Date(i)) / 86400000) + 1;
+      const dias = Math.round((new Date(f) - new Date(i)) / 86400000) + 1;
       data.days = dias > 0 ? dias : 1;
       document.getElementById('totalDias').textContent = data.days;
     }
@@ -138,7 +138,7 @@
   function renderLista() {
     const cont = document.getElementById('listaCategorias');
     cont.innerHTML = '';
-    data.items.forEach((it,i)=>{
+    data.items.forEach((it,i) => {
       if (it.fixed) {
         cont.innerHTML += `<div class="category-item fixed">${it.name}<br><b>${it.amount.toFixed(0)}€</b></div>`;
       } else {
@@ -193,7 +193,6 @@
       TOTAL VIAJE: ${total.toFixed(0)}€</div>`;
     document.getElementById('resumenFinal').innerHTML = html;
 
-    // GAUGE con etiquetas siempre visibles
     if (gaugeChart) gaugeChart.destroy();
     const ctx = document.getElementById('gaugeChart').getContext('2d');
     gaugeChart = new Chart(ctx, {
@@ -234,7 +233,7 @@
     data.km = +document.getElementById('km').value || 0;
     data.precioGasoil = +document.getElementById('precioGasoil').value || 0;
     data.consumo100 = +document.getElementById('consumo100').value || 0;
-    localStorage.setItem('caracolaV7', JSON.stringify(data));
+    localStorage.setItem('caracolaFINAL', JSON.stringify(data));
   }
 
   function exportarGoogleSheets() {
@@ -271,7 +270,7 @@
     document.getElementById('totalCat').textContent = (v * data.days).toFixed(0);
   });
 
-  document.getElementById('copy').onclick = ()=>{
+  document.getElementById('copy').onclick = () => {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const texto = `${data.nombre||'Viaje'}\n${data.inicio} → ${data.fin} (${data.days} días)\n\n` +
       data.items.map(it=>`${it.name}: ${(it.fixed ? it.amount : it.amountPerDay*data.days).toFixed(0)}€`).join('\n') +
@@ -279,7 +278,7 @@
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Cargar valores guardados
+  // Cargar datos guardados
   document.getElementById('nombreViaje').value = data.nombre;
   document.getElementById('fechaInicio').value = data.inicio;
   document.getElementById('fechaFin').value = data.fin;
@@ -288,9 +287,9 @@
   document.getElementById('consumo100').value = data.consumo100;
 
   // Eventos
-  ['fechaInicio','fechaFin'].forEach(id=>document.getElementById(id).addEventListener('change',calcDias));
-  ['km','precioGasoil','consumo100'].forEach(id=>document.getElementById(id).addEventListener('input',calcGasoil));
-  document.getElementById('nombreViaje').addEventListener('input',save);
+  ['fechaInicio','fechaFin'].forEach(id => document.getElementById(id).addEventListener('change', calcDias));
+  ['km','precioGasoil','consumo100'].forEach(id => document.getElementById(id).addEventListener('input', calcGasoil));
+  document.getElementById('nombreViaje').addEventListener('input', save);
 
   // Inicio
   calcDias();
