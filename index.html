@@ -23,38 +23,21 @@
     .container { max-width: 460px; margin: 0 auto; }
     h1 { font-size: 2.6rem; text-align:center; margin-bottom:8px; font-weight:900; }
     .by { text-align:center; font-size:1.4rem; margin-bottom:30px; opacity:0.9; }
-    .slide {
-      background: var(--glass);
-      backdrop-filter: blur(14px);
-      border-radius: 24px;
-      padding: 32px;
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-      display: none;
-    }
+    .slide { background: var(--glass); backdrop-filter: blur(14px); border-radius: 24px; padding: 32px; border: 1px solid var(--border); box-shadow: 0 10px 40px rgba(0,0,0,0.4); display: none; }
     .slide.active { display: block; animation: fade 0.4s; }
     @keyframes fade { from {opacity:0; transform:translateY(20px)} to {opacity:1; transform:none} }
-    input, button {
-      width: 100%; padding: 16px; margin: 12px 0;
-      background: rgba(255,255,255,0.12);
-      border: 1px solid var(--border);
-      border-radius: 14px; color: white; font-size:1.1rem;
-    }
+    input, button { width: 100%; padding: 16px; margin: 12px 0; background: rgba(255,255,255,0.12); border: 1px solid var(--border); border-radius: 14px; color: white; font-size:1.1rem; }
+    input[type="range"] { height: 50px; }
     input:focus { outline: 2px solid white; }
     label { font-size:1.1rem; margin-top:16px; display:block; }
-    .result { font-size:1.8rem; font-weight:900; text-align:center; margin:20px 0; color:white; }
-    .btn {
-      background: white; color: var(--red); font-weight:900;
-      cursor:pointer; margin-top:30px; transition:0.3s;
-    }
+    .result { font-size:2rem; font-weight:900; text-align:center; margin:24px 0; }
+    .value { font-size:3rem; font-weight:900; color:white; }
+    .btn { background: white; color: var(--red); font-weight:900; cursor:pointer; margin-top:30px; transition:0.3s; }
     .btn:hover { transform:scale(1.04); }
     .btn-prev { background: transparent; border:2px solid white; color:white; margin-top:10px; }
     .grid { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-    .category { display:flex; gap:12px; align-items:center; background:rgba(255,255,255,0.08); padding:14px; border-radius:14px; margin:12px 0; border:1px solid var(--border); }
-    .category input[type=text] { flex:1; background:transparent; border:none; outline:none; }
-    .category input[type=number] { width:110px; text-align:right; }
-    .add { border:2px dashed rgba(255,255,255,0.4); background:transparent; }
-    .delete { color:#ff6b6b; cursor:pointer; font-size:1.4rem; }
+    .category-item { background:rgba(255,255,255,0.08); padding:18px; border-radius:16px; margin:12px 0; text-align:center; cursor:pointer; border:1px solid var(--border); }
+    .category-item.fixed { opacity:0.7; cursor:default; }
   </style>
 </head>
 <body>
@@ -62,199 +45,209 @@
   <h1>Gastos de Viaje</h1>
   <div class="by">by @CaraColaViajes</div>
 
-  <!-- SLIDE 1 -->
+  <!-- SLIDE 1: Datos básicos -->
   <div class="slide active" id="slide1">
     <label>Nombre del viaje</label>
-    <input type="text" id="nombreViaje" placeholder="Ej: Ruta por los Pirineos">
+    <input type="text" id="nombreViaje" placeholder="Ej: Ruta por Andalucía">
 
-    <label>Fecha de inicio</label>
+    <label>Fecha inicio</label>
     <input type="date" id="fechaInicio">
-
-    <label>Fecha de fin</label>
+    <label>Fecha fin</label>
     <input type="date" id="fechaFin">
 
     <div class="result">Días totales: <span id="totalDias">0</span></div>
 
-    <button class="btn" onclick="goSlide(2)">Siguiente →</button>
+    <button class="btn" onclick="go(2)">Siguiente →</button>
   </div>
 
-  <!-- SLIDE 2 -->
+  <!-- SLIDE 2: Combustible -->
   <div class="slide" id="slide2">
-    <label>Kilómetros totales del viaje</label>
-    <input type="number" id="km" placeholder="Ej: 2150">
+    <label>Kilómetros totales</label>
+    <input type="number" id="km" placeholder="Ej: 1800">
 
     <div class="grid">
-      <div>
-        <label>Precio gasoil (€/litro)</label>
-        <input type="number" step="0.001" id="precioGasoil" placeholder="Ej: 1.549">
-      </div>
-      <div>
-        <label>Consumo (L/100 km)</label>
-        <input type="number" step="0.1" id="consumo100" placeholder="Ej: 9.8">
-      </div>
+      <div><label>Precio gasoil (€/L)</label><input type="number" step="0.001" id="precioGasoil" value="1.55"></div>
+      <div><label>Consumo L/100 km</label><input type="number" step="0.1" id="consumo100" value="9.5"></div>
     </div>
 
-    <div class="result">
-      Gasoil estimado: <span id="gasoilCoste">0</span>€
-      <small style="display:block;font-size:1rem;margin-top:8px">
-        (<span id="litros">0</span> litros)
-      </small>
-    </div>
+    <div class="result">Gasoil: <span id="gasoilCoste">0</span>€</div>
 
-    <button class="btn-prev" onclick="goSlide(1)">← Anterior</button>
-    <button class="btn" onclick="goSlide(3)">Siguiente →</button>
+    <button class="btn-prev" onclick="go(1)">← Anterior</button>
+    <button class="btn" onclick="go(3)">Siguiente →</button>
   </div>
 
-  <!-- SLIDE 3 -->
+  <!-- SLIDE 3: Selección de categorías -->
   <div class="slide" id="slide3">
-    <div id="categories"></div>
-    <button class="add" id="addCategory">+ Añadir categoría</button>
+    <h2 style="text-align:center;margin-bottom:20px">Elige y ajusta tus gastos</h2>
+    <div id="listaCategorias"></div>
 
-    <div style="margin-top:30px;padding-top:20px;border-top:1px solid var(--border)">
-      <div style="display:flex;justify-content:space-between;font-size:1.4rem;margin:12px 0">
-        <span>Total otros gastos</span><span id="totalOtros">0€</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:1.8rem;font-weight:900;color:white">
-        <span>TOTAL VIAJE</span><span id="totalFinal">0€</span>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin:10px 0">
-        <span>Por persona (2)</span><span id="perPerson">0€</span>
-      </div>
-      <div style="display:flex;justify-content:space-between">
-        <span>Por día</span><span id="perDay">0€</span>
-      </div>
+    <button class="btn-prev" onclick="go(2)">← Anterior</button>
+    <button class="btn" onclick="go(4)">Ver resumen →</button>
+  </div>
+
+  <!-- SLIDE 4: Resumen final -->
+  <div class="slide" id="slide4">
+    <div id="resumenFinal"></div>
+    <button class="btn-prev" onclick="go(3)">← Editar gastos</button>
+    <button class="btn" id="copy">COPIAR RESUMEN</button>
+  </div>
+
+  <!-- SLIDE oculto para edición con slider -->
+  <div class="slide" id="slideEditor">
+    <div style="text-align:center">
+      <h2 id="editTitle"></h2>
+      <div class="value" id="editValue">0€</div>
+      <input type="range" min="0" max="200" value="0" id="slider">
+      <input type="number" id="sliderInput" style="margin-top:20px">
+      <small>Por día × <span id="diasEdit">0</span> días = <span id="totalCat">0</span>€</small>
     </div>
-
-    <button class="btn-prev" onclick="goSlide(2)">← Anterior</button>
-    <button class="btn" id="copy">COPIAR RESUMEN COMPLETO</button>
+    <button class="btn-prev" onclick="guardarYVolver()">Guardar y volver</button>
   </div>
 </div>
 
 <script>
-  // Datos guardados
-  const saved = JSON.parse(localStorage.getItem('caracolaPRO')) || {
-    nombre:"", inicio:"", fin:"", km:0, precioGasoil:1.55, consumo100:9.5, days:1, people:2,
+  const data = JSON.parse(localStorage.getItem('caracolaV5')) || {
+    nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
-      {name:"Gasolina (calculado auto) ⛽", amount:0, fixed:true},
-      {name:"Peajes y viñetas", amount:0},
-      {name:"Campings / Áreas", amount:0},
-      {name:"Supermercado y comidas", amount:0},
-      {name:"Actividades y entradas", amount:0},
-      {name:"Parking y lavandería", amount:0},
-      {name:"Otros / imprevistos", amount:0}
+      {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
+      {name:"Peajes y viñetas", amountPerDay:30},
+      {name:"Campings / Áreas", amountPerDay:25},
+      {name:"Comida diaria en supermercado", amountPerDay:25},
+      {name:"Bares y restaurantes", amountPerDay:15},
+      {name:"Actividades y entradas", amountPerDay:10},
+      {name:"Parking y lavandería", amountPerDay:5},
+      {name:"Otros / imprevistos", amountPerDay:10}
     ]
   };
 
-  // Cargar valores
-  document.getElementById('nombreViaje').value = saved.nombre || '';
-  document.getElementById('fechaInicio').value = saved.inicio || '';
-  document.getElementById('fechaFin').value = saved.fin || '';
-  document.getElementById('km').value = saved.km || '';
-  document.getElementById('precioGasoil').value = saved.precioGasoil || '';
-  document.getElementById('consumo100').value = saved.consumo100 || '';
+  let editIndex = -1;
 
-  function goSlide(n) {
-    document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
-    document.getElementById('slide' + n).classList.add('active');
+  function go(n) {
+    document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
+    document.getElementById('slide'+n).classList.add('active');
+    if (n===3) renderLista();
+    if (n===4) renderResumen();
   }
 
-  function calcularDias() {
-    const ini = document.getElementById('fechaInicio').value;
-    const fin = document.getElementById('fechaFin').value;
-    if (ini && fin) {
-      const dias = Math.round((new Date(fin) - new Date(ini)) / (1000*60*60*24)) + 1;
-      document.getElementById('totalDias').textContent = dias > 0 ? dias : 0;
-      saved.days = dias > 0 ? dias : 1;
-      saved.inicio = ini;
-      saved.fin = fin;
-      saved.nombre = document.getElementById('nombreViaje').value;
-      localStorage.setItem('caracolaPRO', JSON.stringify(saved));
-      actualizarTodo();
+  function calcDias() {
+    const i = document.getElementById('fechaInicio').value;
+    const f = document.getElementById('fechaFin').value;
+    if (i && f) {
+      const dias = Math.round((new Date(f) - new Date(i)) / 86400000) + 1;
+      data.days = dias > 0 ? dias : 1;
+      document.getElementById('totalDias').textContent = data.days;
     }
+    save();
   }
 
-  function calcularGasoil() {
-    const km = parseFloat(document.getElementById('km').value) || 0;
-    const precio = parseFloat(document.getElementById('precioGasoil').value) || 0;
-    const consumo = parseFloat(document.getElementById('consumo100').value) || 0;
-    const litros = (km * consumo) / 100;
-    const coste = litros * precio;
-    document.getElementById('litros').textContent = litros.toFixed(1);
+  function calcGasoil() {
+    const km = +document.getElementById('km').value || 0;
+    const p = +document.getElementById('precioGasoil').value || 0;
+    const c = +document.getElementById('consumo100').value || 0;
+    const coste = (km * c / 100) * p;
+    data.items[0].amount = coste;
     document.getElementById('gasoilCoste').textContent = coste.toFixed(0);
-    saved.items[0].amount = coste;
-    saved.km = km;
-    saved.precioGasoil = precio;
-    saved.consumo100 = consumo;
-    localStorage.setItem('caracolaPRO', JSON.stringify(saved));
-    actualizarTodo();
+    save();
   }
 
-  function actualizarTodo() {
-    const totalGasoil = saved.items[0].amount;
-    const otros = saved.items.slice(1).reduce((s, x) => s + (parseFloat(x.amount) || 0), 0);
-    const total = totalGasoil + otros;
-
-    document.getElementById('totalOtros').textContent = otros.toFixed(0) + '€';
-    document.getElementById('totalFinal').textContent = total.toFixed(0) + '€';
-    document.getElementById('perPerson').textContent = (total / 2).toFixed(0) + '€';
-    document.getElementById('perDay').textContent = (total / saved.days).toFixed(0) + '€';
-
-    // Render categorías
-    const cont = document.getElementById('categories');
+  function renderLista() {
+    const cont = document.getElementById('listaCategorias');
     cont.innerHTML = '';
-    saved.items.forEach((it, i) => {
-      const div = document.createElement('div');
-      div.className = 'category';
-      div.innerHTML = `
-        <input type="text" value="${it.name}" ${it.fixed?'readonly style="opacity:0.7"':''}>
-        <input type="number" value="${it.amount.toFixed(0)}" ${it.fixed?'readonly':''} data-i="${i}">
-        ${!it.fixed ? '<div class="delete" onclick="borrar('+i+')">✕</div>' : ''}
-      `;
-      cont.appendChild(div);
+    data.items.forEach((it,i)=>{
+      if (it.fixed) {
+        cont.innerHTML += `<div class="category-item fixed">${it.name}<br><b>${it.amount.toFixed(0)}€</b></div>`;
+      } else {
+        const total = it.amountPerDay * data.days;
+        cont.innerHTML += `<div class="category-item" onclick="editar(${i})">${it.name}<br><b>${it.amountPerDay}€/día → ${total.toFixed(0)}€ total</b></div>`;
+      }
     });
   }
 
-  window.borrar = i => {
-    saved.items.splice(i, 1);
-    localStorage.setItem('caracolaPRO', JSON.stringify(saved));
-    actualizarTodo();
+  window.editar = i => {
+    editIndex = i;
+    const it = data.items[i];
+    document.getElementById('editTitle').textContent = it.name;
+    document.getElementById('slider').value = it.amountPerDay;
+    document.getElementById('sliderInput').value = it.amountPerDay;
+    document.getElementById('editValue').textContent = it.amountPerDay + '€';
+    document.getElementById('diasEdit').textContent = data.days;
+    document.getElementById('totalCat').textContent = (it.amountPerDay * data.days).toFixed(0);
+    go('Editor');
   };
 
-  document.getElementById('addCategory').onclick = () => {
-    saved.items.push({name:"Nueva categoría", amount:0});
-    localStorage.setItem('caracolaPRO', JSON.stringify(saved));
-    actualizarTodo();
-  };
+  function guardarYVolver() {
+    const val = +document.getElementById('slider').value;
+    data.items[editIndex].amountPerDay = val;
+    save();
+    renderLista();
+    go(3);
+  }
 
-  document.getElementById('categories').addEventListener('input', e => {
-    if (e.target.type === 'number' && e.target.dataset.i !== undefined) {
-      const i = parseInt(e.target.dataset.i);
-      saved.items[i].amount = parseFloat(e.target.value) || 0;
-      localStorage.setItem('caracolaPRO', JSON.stringify(saved));
-      actualizarTodo();
-    }
+  function renderResumen() {
+    let html = `<h2 style="text-align:center">${data.nombre||'Mi viaje'}</h2>`;
+    html += `<p style="text-align:center">${data.inicio} → ${data.fin} · ${data.days} días · ${data.km||0} km</p><hr style="border-color:rgba(255,255,255,0.3);margin:20px 0">`;
+    let total = 0;
+    data.items.forEach(it=>{
+      const amt = it.fixed ? it.amount : it.amountPerDay * data.days;
+      html += `<div style="display:flex;justify-content:space-between;font-size:1.3rem;margin:12px 0"><span>${it.name}</span><span>${amt.toFixed(0)}€</span></div>`;
+      total += amt;
+    });
+    html += `<div style="border-top:2px solid white;margin-top:20px;padding-top:15px;font-size:2rem;font-weight:900;text-align:center">TOTAL VIAJE: ${total.toFixed(0)}€</div>`;
+    document.getElementById('resumenFinal').innerHTML = html;
+  }
+
+  function save() {
+    data.nombre = document.getElementById('nombreViaje').value;
+    data.inicio = document.getElementById('fechaInicio').value;
+    data.fin = document.getElementById('fechaFin').value;
+    data.km = +document.getElementById('km').value || 0;
+    data.precioGasoil = +document.getElementById('precioGasoil').value || 0;
+    data.consumo100 = +document.getElementById('consumo100').value || 0;
+    localStorage.setItem('caracolaV5', JSON.stringify(data));
+  }
+
+  // Eventos slider
+  document.getElementById('slider').addEventListener('input', function(){
+    const v = this.value;
+    document.getElementById('sliderInput').value = v;
+    document.getElementById('editValue').textContent = v + '€';
+    document.getElementById('totalCat').textContent = (v * data.days).toFixed(0);
+  });
+  document.getElementById('sliderInput').addEventListener('input', function(){
+    let v = +this.value;
+    if (v > 200) v = 200;
+    if (v < 0) v = 0;
+    document.getElementById('slider').value = v;
+    document.getElementById('editValue').textContent = v + '€';
+    document.getElementById('totalCat').textContent = (v * data.days).toFixed(0);
   });
 
-  document.getElementById('copy').onclick = () => {
-    const total = saved.items.reduce((s,x)=>s + x.amount,0);
-    const texto = `${saved.nombre || 'Mi viaje'}\nDel ${saved.inicio} al ${saved.fin} (${saved.days} días) · ${saved.km} km\n\n` +
-      saved.items.map(x=>`${x.name}: ${x.amount.toFixed(0)}€`).join('\n') +
-      `\n\nTOTAL VIAJE: ${total.toFixed(0)}€`;
+  document.getElementById('copy').onclick = ()=>{
+    let texto = `${data.nombre||'Viaje'}\n${data.inicio} → ${data.fin} (${data.days} días)\n\n`;
+    let total = 0;
+    data.items.forEach(it=>{
+      const amt = it.fixed ? it.amount : it.amountPerDay * data.days;
+      texto += `${it.name}: ${amt.toFixed(0)}€\n`;
+      total += amt;
+    });
+    texto += `\nTOTAL: ${total.toFixed(0)}€`;
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Eventos
-  document.getElementById('fechaInicio').addEventListener('change', calcularDias);
-  document.getElementById('fechaFin').addEventListener('change', calcularDias);
-  document.getElementById('nombreViaje').addEventListener('input', calcularDias);
-  ['km','precioGasoil','consumo100'].forEach(id => 
-    document.getElementById(id).addEventListener('input', calcularGasoil)
-  );
+  // Iniciar
+  document.getElementById('nombreViaje').value = data.nombre;
+  document.getElementById('fechaInicio').value = data.inicio;
+  document.getElementById('fechaFin').value = data.fin;
+  document.getElementById('km').value = data.km;
+  document.getElementById('precioGasoil').value = data.precioGasoil;
+  document.getElementById('consumo100').value = data.consumo100;
 
-  // Inicio
-  calcularDias();
-  calcularGasoil();
-  actualizarTodo();
+  ['fechaInicio','fechaFin'].forEach(id=>document.getElementById(id).addEventListener('change',calcDias));
+  ['km','precioGasoil','consumo100'].forEach(id=>document.getElementById(id).addEventListener('input',calcGasoil));
+  document.getElementById('nombreViaje').addEventListener('input',save);
+
+  calcDias();
+  calcGasoil();
 </script>
 </body>
 </html>
