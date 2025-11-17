@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Gastos de Viaje | @CaraColaViajes</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> <!-- Gauge -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root{--red:#af1a25;--red-light:#c23a44;--red-dark:#8b151e;--glass:rgba(255,255,255,0.08);--text:#fff;--border:rgba(255,255,255,0.2)}
     *{margin:0;padding:0;box-sizing:border-box}
@@ -19,7 +19,7 @@
     input[type=range]{height:50px}
     .result{font-size:2rem;font-weight:900;text-align:center;margin:24px 0}
     .value{font-size:3rem;font-weight:900;color:white}
-    .btn{background:white;color:var(--red);font-weight:900;cursor:pointer;margin-top:30px;transition:.3s}
+    .btn{background:white;color:var(--red);font-weight:900;cursor:pointer;margin-top:20px;transition:.3s}
     .btn:hover{transform:scale(1.04)}
     .btn-prev{background:transparent;border:2px solid white;color:white;margin-top:10px}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -33,36 +33,148 @@
   <h1>Gastos de Viaje</h1>
   <div class="by">by @CaraColaViajes</div>
 
-  <!-- Los 4 slides anteriores (1,2,3,Editor) igual que antes -->
-  <!-- (Los mantengo idénticos para no repetir 300 líneas, solo copio el nuevo slide 4 con el gauge) -->
+  <!-- SLIDE 1 -->
+  <div class="slide active" id="slide1">
+    <label>Nombre del viaje</label>
+    <input type="text" id="nombreViaje" placeholder="Ej: Ruta por los Pirineos">
+    <label>Fecha inicio</label>
+    <input type="date" id="fechaInicio">
+    <label>Fecha fin</label>
+    <input type="date" id="fechaFin">
+    <div class="result">Días totales: <span id="totalDias">0</span></div>
+    <button class="btn" onclick="go(2)">Siguiente →</button>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide" id="slide2">
+    <label>Kilómetros totales</label>
+    <input type="number" id="km" placeholder="Ej: 2150">
+    <div class="grid">
+      <div><label>Precio gasoil (€/L)</label><input type="number" step="0.001" id="precioGasoil" value="1.55"></div>
+      <div><label>Consumo L/100 km</label><input type="number" step="0.1" id="consumo100" value="9.5"></div>
+    </div>
+    <div class="result">Gasoil estimado: <span id="gasoilCoste">0</span>€</div>
+    <button class="btn-prev" onclick="go(1)">← Anterior</button>
+    <button class="btn" onclick="go(3)">Siguiente →</button>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide" id="slide3">
+    <h2 style="text-align:center;margin-bottom:20px">Ajusta tus gastos</h2>
+    <div id="listaCategorias"></div>
+    <button class="btn-prev" onclick="go(2)">← Anterior</button>
+    <button class="btn" onclick="go(4)">Ver resumen →</button>
+  </div>
 
   <!-- SLIDE 4: Resumen + Gauge + Exportar -->
   <div class="slide" id="slide4">
     <div id="resumenFinal"></div>
     <canvas id="gaugeChart" height="220"></canvas>
-    
     <button class="btn-prev" onclick="go(3)">← Editar gastos</button>
     <button class="btn" onclick="exportarGoogleSheets()">EXPORTAR A GOOGLE SHEETS</button>
     <button class="btn" id="copy">COPIAR RESUMEN</button>
   </div>
 
-  <!-- Slides 1,2,3 y Editor son exactamente iguales que en el mensaje anterior -->
-  <!-- Solo añado aquí el nuevo código del gauge y export -->
+  <!-- SLIDE Editor -->
+  <div class="slide" id="slideEditor">
+    <div style="text-align:center">
+      <h2 id="editTitle"></h2>
+      <div class="value" id="editValue">0€</div>
+      <input type="range" min="0" max="200" value="0" id="slider">
+      <input type="number" id="sliderInput" style="margin-top:20px">
+      <small>Por día × <span id="diasEdit">0</span> días = <span id="totalCat">0</span>€</small>
+    </div>
+    <button class="btn-prev" onclick="guardarYVolver()">Guardar y volver</button>
+  </div>
+</div>
 
 <script>
-  // ← Aquí va todo el código JavaScript anterior (data, go(), calcDias(), calcGasoil()…) 
-  // Lo tienes en el mensaje anterior, cópialo tal cual hasta la línea save();
+  const data = JSON.parse(localStorage.getItem('caracolaV6')) || {
+    nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
+    items: [
+      {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
+      {name:"Peajes y viñetas", amountPerDay:30},
+      {name:"Campings / Áreas", amountPerDay:25},
+      {name:"Comida diaria en supermercado", amountPerDay:25},
+      {name:"Bares y restaurantes", amountPerDay:15},
+      {name:"Actividades y entradas", amountPerDay:10},
+      {name:"Parking y lavandería", amountPerDay:5},
+      {name:"Otros / imprevistos", amountPerDay:10}
+    ]
+  };
 
+  let editIndex = -1;
   let gaugeChart = null;
+
+  function go(n) {
+    document.querySelectorAll('.slide').forEach(s=>s.classList.remove('active'));
+    document.getElementById('slide'+(n==='Editor'?'Editor':n)).classList.add('active');
+    if (n===3) renderLista();
+    if (n===4) renderResumen();
+  }
+
+  function calcDias() {
+    const i = document.getElementById('fechaInicio').value;
+    const f = document.getElementById('fechaFin').value;
+    if (i && f) {
+      const dias = Math.round((new Date(f) - new Date(i)) / 86400000) + 1;
+      data.days = dias > 0 ? dias : 1;
+      document.getElementById('totalDias').textContent = data.days;
+    }
+    save();
+  }
+
+  function calcGasoil() {
+    const km = +document.getElementById('km').value || 0;
+    const p = +document.getElementById('precioGasoil').value || 0;
+    const c = +document.getElementById('consumo100').value || 0;
+    const coste = (km * c / 100) * p;
+    data.items[0].amount = coste;
+    document.getElementById('gasoilCoste').textContent = coste.toFixed(0);
+    save();
+  }
+
+  function renderLista() {
+    const cont = document.getElementById('listaCategorias');
+    cont.innerHTML = '';
+    data.items.forEach((it,i)=>{
+      if (it.fixed) {
+        cont.innerHTML += `<div class="category-item fixed">${it.name}<br><b>${it.amount.toFixed(0)}€</b></div>`;
+      } else {
+        const total = it.amountPerDay * data.days;
+        cont.innerHTML += `<div class="category-item" onclick="editar(${i})">${it.name}<br><b>${it.amountPerDay}€/día → ${total.toFixed(0)}€</b></div>`;
+      }
+    });
+  }
+
+  window.editar = i => {
+    editIndex = i;
+    const it = data.items[i];
+    document.getElementById('editTitle').textContent = it.name;
+    document.getElementById('slider').value = it.amountPerDay;
+    document.getElementById('sliderInput').value = it.amountPerDay;
+    document.getElementById('editValue').textContent = it.amountPerDay + '€';
+    document.getElementById('diasEdit').textContent = data.days;
+    document.getElementById('totalCat').textContent = (it.amountPerDay * data.days).toFixed(0);
+    go('Editor');
+  };
+
+  function guardarYVolver() {
+    const val = +document.getElementById('slider').value;
+    data.items[editIndex].amountPerDay = val;
+    save();
+    renderLista();
+    go(3);
+  }
 
   function renderResumen() {
     let html = `<h2 style="text-align:center">${data.nombre||'Mi viaje'}</h2>
       <p style="text-align:center">${data.inicio} → ${data.fin} · ${data.days} días · ${data.km||0} km</p>
       <hr style="border-color:rgba(255,255,255,0.3);margin:30px 0">`;
     let total = 0;
-    const categorias = [];
+    const labels = [];
     const valores = [];
-    const colores = ['#af1a25','#c23a44','#e74c3c','#e67e22','#f1c40f','#27ae60','#3498db'];
+    const colores = ['#af1a25','#c23a44','#e74c3c','#e67e22','#f1c40f','#27ae60','#3498db','#9b59b6'];
 
     data.items.forEach(it=>{
       const amt = it.fixed ? it.amount : it.amountPerDay * data.days;
@@ -70,7 +182,7 @@
         <span>${it.name}</span><span>${amt.toFixed(0)}€</span></div>`;
       total += amt;
       if (amt > 0) {
-        categorias.push(it.name.split(' (')[0]);
+        labels.push(it.name.split(' (')[0]);
         valores.push(amt);
       }
     });
@@ -78,52 +190,6 @@
       TOTAL VIAJE: ${total.toFixed(0)}€</div>`;
     document.getElementById('resumenFinal').innerHTML = html;
 
-    // GAUGE
+    // Gauge
     if (gaugeChart) gaugeChart.destroy();
-    const ctx = document.getElementById('gaugeChart').getContext('2d');
-    gaugeChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: categorias,
-        datasets: [{
-          data: valores,
-          backgroundColor: colores,
-          borderWidth: 3,
-          borderColor: '#111'
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: {
-          legend: {position:'bottom',labels:{color:'white',font:{size:14}}},
-          tooltip: {callbacks:{label: ctx => `${ctx.label}: ${ctx.raw.toFixed(0)}€`}}
-        }
-      }
-    });
-  }
-
-  // EXPORTAR A GOOGLE SHEETS (solo tienes que crear la hoja una vez)
-  function exportarGoogleSheets() {
-    const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
-    const fila = [
-      new Date().toISOString().split('T')[0], // fecha exportación
-      data.nombre || 'Sin nombre',
-      data.inicio, data.fin, data.days,
-      data.km || 0,
-      data.items.map(it=>it.fixed ? it.amount : it.amountPerDay*data.days),
-      total
-    ].flat();
-
-    // ← URL DE TU GOOGLE SHEET (la creas en 30 segundos) →
-    const SHEET_ID = '1x9z9z9z9z9z9z9z9z9z9z9z9z9z9z9z9z9z9z9'; // ← PONDRE LA TUYA EN 2 MIN
-    const url = `https://script.google.com/macros/s/AKfycbw.../exec?sheet=${SHEET_ID}&data=${encodeURIComponent(fila.join('|'))}`;
-    
-    fetch(url)
-      .then(()=>alert('¡Presupuesto guardado en tu historial de Google Sheets!'))
-      .catch(()=>alert('Error al guardar. Crea la hoja primero (te paso el enlace en 1 min)'));
-  }
-
-  // Resto del código anterior (copy, eventos, init…) igual
-</script>
-</body>
-</html>
+    const ctx = document.getElementById('gaugeChart
