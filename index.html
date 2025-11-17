@@ -50,6 +50,23 @@
     <button class="btn" onclick="go(2)">Siguiente →</button>
   </div>
 
+  <!--body>
+<div class="container">
+  <h1>Gastos de Viaje</h1>
+  <div class="by">by @CaraColaViajes</div>
+
+  <!-- SLIDE 1 -->
+  <div class="slide active" id="slide1">
+    <label>Nombre del viaje</label>
+    <input type="text" id="nombreViaje" placeholder="Ej: Ruta por los Pirineos">
+    <label>Fecha inicio</label>
+    <input type="date" id="fechaInicio">
+    <label>Fecha fin</label>
+    <input type="date" id="fechaFin">
+    <div class="result">Días totales: <span id="totalDias">0</span></div>
+    <button class="btn" onclick="go(2)">Siguiente →</button>
+  </div>
+
   <!-- SLIDE 2 -->
   <div class="slide" id="slide2">
     <label>Kilómetros totales</label>
@@ -103,21 +120,28 @@
     <button class="btn-prev" onclick="guardarYVolver()">Guardar y volver</button>
   </div>
 
-  <!-- CONTENIDO OCULTO PARA EL PDF -->
-  <div id="pdfContent" style="display:none;background:white;color:black;padding:40px;font-family:system-ui;max-width:500px;margin:0 auto">
+  <!-- CONTENIDO DEL PDF BONITO (con tu logo oficial ya puesto) -->
+  <div id="pdfContent" style="display:none;background:white;color:#000;padding:50px;font-family:system-ui;max-width:520px;margin:0 auto;border-radius:20px">
     <div style="text-align:center;margin-bottom:30px">
-      <h1 style="color:#af1a25;font-size:3rem">@CaraColaViajes</h1>
-      <p style="font-size:1.3rem;color:#555">Presupuesto de viaje en furgoneta</p>
+      <img src="https://drive.google.com/uc?export=download&id=1XT5Rkcc-2dS2T5f1aTSV02K9up33dHtc" alt="Logo CaraColaViajes" style="max-width:340px;border-radius:20px">
+      <h1 style="color:#af1a25;font-size:2.8rem;margin:20px 0">@CaraColaViajes</h1>
+      <p style="font-size:1.4rem;color:#555">Presupuesto de viaje en furgoneta / autocaravana</p>
     </div>
-    <h2 style="text-align:center;color:#af1a25;font-size:2.2rem" id="pdfNombre">Mi viaje</h2>
-    <p style="text-align:center;font-size:1.2rem;margin:20px 0" id="pdfFechas">Fechas • días • km</p>
-    <div id="pdfDesglose" style="margin:30px 0;line-height:1.8"></div>
-    <div style="text-align:center;font-size:3rem;font-weight:900;color:#af1a25;margin-top:40px" id="pdfTotal">0€</div>
-    <div style="text-align:center;margin-top:40px">
-      <img src="https://caracolazefiro-sketch.github.io/calculadora-caracola/logo-caracola.png" alt="Logo" style="max-width:280px;border-radius:16px">
-      <!-- Si no tienes logo todavía, cambia la URL o pon un placeholder -->
+
+    <h2 style="text-align:center;color:#af1a25;font-size:2.4rem;margin:30px 0" id="pdfNombre">Mi viaje</h2>
+    <p style="text-align:center;font-size:1.3rem;color:#444" id="pdfFechas">Fechas • días • km</p>
+
+    <div id="pdfDesglose" style="margin:40px 0;line-height:2.2;font-size:1.3rem"></div>
+
+    <div style="text-align:center;background:#af1a25;color:white;padding:20px;border-radius:16px;margin-top:40px">
+      <div style="font-size:3.5rem;font-weight:900" id="pdfTotal">0€</div>
+      <div style="font-size:1.4rem;margin-top:8px">TOTAL DEL VIAJE</div>
     </div>
-    <p style="text-align:center;margin-top:30px;color:#888;font-size:0.9rem">Calculadora creada por @CaraColaViajes ❤️</p>
+
+    <p style="text-align:center;margin-top:40px;color:#888;font-size:1rem">
+      Calculadora creada con ❤️ por @CaraColaViajes<br>
+      Síguenos en Instagram y X para más trucos de viaje
+    </p>
   </div>
 </div>
 
@@ -125,7 +149,7 @@
   let data = JSON.parse(localStorage.getItem('caracolaOK')) || {
     nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
-      {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
+      {name:"Gasolina (auto)", amount:0, fixed:true},
       {name:"Peajes y viñetas", amountPerDay:30},
       {name:"Campings / Áreas", amountPerDay:25},
       {name:"Comida diaria en supermercado", amountPerDay:25},
@@ -270,7 +294,7 @@
     localStorage.setItem('caracolaOK', JSON.stringify(data));
   }
 
-  // ====================== HISTORIAL ======================
+  // HISTORIAL
   function guardarPresupuestoActual() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const nuevo = {
@@ -319,7 +343,7 @@
     listarViajes();
   };
 
-  // ====================== EXPORTAR SHEETS ======================
+  // EXPORTAR A GOOGLE SHEETS
   function exportarGoogleSheets() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const fila = [
@@ -340,7 +364,7 @@
       .catch(() => alert('Guardado OK. Revisa la hoja en 5-10 segundos.'));
   }
 
-  // ====================== GENERAR PDF ======================
+  // PDF BONITO CON TU LOGO OFICIAL
   function generarPDF() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     
@@ -351,24 +375,26 @@
     let desglose = '';
     data.items.forEach(it => {
       const amt = it.fixed ? it.amount : it.amountPerDay * data.days;
-      desglose += `<div style="display:flex;justify-content:space-between;font-size:1.4rem;margin:12px 0">
-        <span>${it.name}</span><strong>${amt.toFixed(0)}€</strong>
+      desglose += `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #eee">
+        <span>${it.name}</span>
+        <strong>${amt.toFixed(0)}€</strong>
       </div>`;
     });
     document.getElementById('pdfDesglose').innerHTML = desglose;
 
     const element = document.getElementById('pdfContent');
     const opt = {
-      margin: 0.5,
+      margin: 0.4,
       filename: `${data.nombre || 'Presupuesto'}_CaraColaViajes.pdf`,
       image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2 },
+      html2canvas: { scale: 2, useCORS: true },
       jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
+
     html2pdf().set(opt).from(element).save();
   }
 
-  // ====================== SLIDERS + COPY ======================
+  // SLIDERS + COPIAR
   document.getElementById('slider').addEventListener('input', function(){
     const v = this.value;
     document.getElementById('sliderInput').value = v;
@@ -390,7 +416,7 @@
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Cargar datos
+  // CARGAR DATOS GUARDADOS
   document.getElementById('nombreViaje').value = data.nombre;
   document.getElementById('fechaInicio').value = data.inicio;
   document.getElementById('fechaFin').value = data.fin;
@@ -398,12 +424,12 @@
   document.getElementById('precioGasoil').value = data.precioGasoil;
   document.getElementById('consumo100').value = data.consumo100;
 
-  // Eventos
+  // EVENTOS
   ['fechaInicio','fechaFin'].forEach(id => document.getElementById(id).addEventListener('change', calcDias));
   ['km','precioGasoil','consumo100'].forEach(id => document.getElementById(id).addEventListener('input', calcGasoil));
   document.getElementById('nombreViaje').addEventListener('input', save);
 
-  // Inicio
+  // INICIO
   calcDias();
   calcGasoil();
 </script>
