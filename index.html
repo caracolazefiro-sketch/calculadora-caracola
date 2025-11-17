@@ -6,6 +6,7 @@
   <title>Gastos de Viaje | @CaraColaViajes</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <style>
     :root{--red:#af1a25;--red-light:#c23a44;--red-dark:#8b151e;--glass:rgba(255,255,255,0.08);--text:#fff;--border:rgba(255,255,255,0.2)}
     *{margin:0;padding:0;box-sizing:border-box}
@@ -27,7 +28,7 @@
     .category-item{background:rgba(255,255,255,0.08);padding:18px;border-radius:16px;margin:12px 0;text-align:center;cursor:pointer;border:1px solid var(--border)}
     .category-item.fixed{opacity:0.7;cursor:default}
     canvas{max-width:100%;margin:30px 0}
-    .viaje-item{background:rgba(255,255,255,0.1);padding:18px;border-radius:16px;margin:12px 0;cursor:pointer;transition:.2s;position:relative}
+    .viaje-item{background:rgba(255,255,255,0.1);padding:18px;border-radius:16px;margin:12px 0;cursor:pointer;position:relative;transition:.2s}
     .viaje-item:hover{background:rgba(255,255,255,0.18)}
     .delete-btn{position:absolute;top:8px;right:8px;background:#8b0000;padding:4px 10px;border-radius:50%;font-size:0.9rem}
   </style>
@@ -78,6 +79,7 @@
     <button class="btn" onclick="guardarPresupuestoActual()">GUARDAR ESTE VIAJE</button>
     <button class="btn" onclick="go(5)">MIS VIAJES GUARDADOS →</button>
     <button class="btn" onclick="exportarGoogleSheets()">EXPORTAR A GOOGLE SHEETS</button>
+    <button class="btn" onclick="generarPDF()" style="background:#e74c3c">DESCARGAR PDF BONITO</button>
     <button class="btn" id="copy">COPIAR RESUMEN</button>
   </div>
 
@@ -100,10 +102,26 @@
     </div>
     <button class="btn-prev" onclick="guardarYVolver()">Guardar y volver</button>
   </div>
+
+  <!-- CONTENIDO OCULTO PARA EL PDF -->
+  <div id="pdfContent" style="display:none;background:white;color:black;padding:40px;font-family:system-ui;max-width:500px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:30px">
+      <h1 style="color:#af1a25;font-size:3rem">@CaraColaViajes</h1>
+      <p style="font-size:1.3rem;color:#555">Presupuesto de viaje en furgoneta</p>
+    </div>
+    <h2 style="text-align:center;color:#af1a25;font-size:2.2rem" id="pdfNombre">Mi viaje</h2>
+    <p style="text-align:center;font-size:1.2rem;margin:20px 0" id="pdfFechas">Fechas • días • km</p>
+    <div id="pdfDesglose" style="margin:30px 0;line-height:1.8"></div>
+    <div style="text-align:center;font-size:3rem;font-weight:900;color:#af1a25;margin-top:40px" id="pdfTotal">0€</div>
+    <div style="text-align:center;margin-top:40px">
+      <img src="https://caracolazefiro-sketch.github.io/calculadora-caracola/logo-caracola.png" alt="Logo" style="max-width:280px;border-radius:16px">
+      <!-- Si no tienes logo todavía, cambia la URL o pon un placeholder -->
+    </div>
+    <p style="text-align:center;margin-top:30px;color:#888;font-size:0.9rem">Calculadora creada por @CaraColaViajes ❤️</p>
+  </div>
 </div>
 
 <script>
-  // DATOS DEL PRESUPUESTO ACTUAL
   let data = JSON.parse(localStorage.getItem('caracolaOK')) || {
     nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
@@ -252,7 +270,7 @@
     localStorage.setItem('caracolaOK', JSON.stringify(data));
   }
 
-  // ====================== NUEVO: HISTORIAL ======================
+  // ====================== HISTORIAL ======================
   function guardarPresupuestoActual() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const nuevo = {
@@ -322,7 +340,35 @@
       .catch(() => alert('Guardado OK. Revisa la hoja en 5-10 segundos.'));
   }
 
-  // Slider + copy + eventos
+  // ====================== GENERAR PDF ======================
+  function generarPDF() {
+    const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
+    
+    document.getElementById('pdfNombre').textContent = data.nombre || 'Mi viaje';
+    document.getElementById('pdfFechas').textContent = `${data.inicio} → ${data.fin} • ${data.days} días • ${data.km||0} km`;
+    document.getElementById('pdfTotal').textContent = total.toFixed(0) + '€';
+
+    let desglose = '';
+    data.items.forEach(it => {
+      const amt = it.fixed ? it.amount : it.amountPerDay * data.days;
+      desglose += `<div style="display:flex;justify-content:space-between;font-size:1.4rem;margin:12px 0">
+        <span>${it.name}</span><strong>${amt.toFixed(0)}€</strong>
+      </div>`;
+    });
+    document.getElementById('pdfDesglose').innerHTML = desglose;
+
+    const element = document.getElementById('pdfContent');
+    const opt = {
+      margin: 0.5,
+      filename: `${data.nombre || 'Presupuesto'}_CaraColaViajes.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+  }
+
+  // ====================== SLIDERS + COPY ======================
   document.getElementById('slider').addEventListener('input', function(){
     const v = this.value;
     document.getElementById('sliderInput').value = v;
@@ -344,7 +390,7 @@
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Cargar datos guardados
+  // Cargar datos
   document.getElementById('nombreViaje').value = data.nombre;
   document.getElementById('fechaInicio').value = data.inicio;
   document.getElementById('fechaFin').value = data.fin;
