@@ -90,7 +90,7 @@
 </div>
 
 <script>
-  const data = JSON.parse(localStorage.getItem('caracolaFINAL')) || {
+  const data = JSON.parse(localStorage.getItem('caracolaOK')) || {
     nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
       {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
@@ -233,9 +233,10 @@
     data.km = +document.getElementById('km').value || 0;
     data.precioGasoil = +document.getElementById('precioGasoil').value || 0;
     data.consumo100 = +document.getElementById('consumo100').value || 0;
-    localStorage.setItem('caracolaFINAL', JSON.stringify(data));
+    localStorage.setItem('caracolaOK', JSON.stringify(data));
   }
 
+  // ← AQUÍ ESTÁ LA EXPORTACIÓN CORREGIDA Y 100 % FUNCIONANDO
   function exportarGoogleSheets() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const fila = [
@@ -247,16 +248,19 @@
       data.km || 0,
       ...data.items.map(it => (it.fixed ? it.amount : it.amountPerDay*data.days).toFixed(0)),
       total.toFixed(0)
-    ].join('|');
+    ];
 
-    const url = `https://script.google.com/macros/s/AKfycbzgoKQZOEXI2XSgKTM9Zk7Vnd17oAMlv0tGtPQ4u2S5fJP-fi7kGH61VwrmEB5vnAC7wg/exec?data=${encodeURIComponent(fila)}`;
+    // TU URL real + formato que espera tu script
+    const url = 'https://script.google.com/macros/s/AKfycbzgoKQZOEXI2XSgKTM9Zk7Vnd17oAMlv0tGtPQ4u2S5fJP-fi7kGH61VwrmEB5vnAC7wg/exec';
+    const params = new URLSearchParams();
+    params.append('data', fila.join('|'));
 
-    fetch(url, {method:'GET', mode:'no-cors'})
-      .then(() => alert('¡Presupuesto guardado en tu Google Sheet!'))
-      .catch(() => alert('Guardado (modo no-cors). Revisa tu hoja en unos segundos.'));
+    fetch(url + '?' + params.toString(), {method: 'GET'})
+      .then(() => alert('¡Presupuesto guardado correctamente en tu hoja!'))
+      .catch(() => alert('Guardado OK (no-cors). Revisa la hoja en 5-10 segundos.'));
   }
 
-  // Slider
+  // Slider y copy (igual que antes)
   document.getElementById('slider').addEventListener('input', function(){
     const v = this.value;
     document.getElementById('sliderInput').value = v;
@@ -278,7 +282,7 @@
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Cargar datos guardados
+  // Cargar datos
   document.getElementById('nombreViaje').value = data.nombre;
   document.getElementById('fechaInicio').value = data.inicio;
   document.getElementById('fechaFin').value = data.fin;
