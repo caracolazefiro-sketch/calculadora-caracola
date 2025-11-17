@@ -192,4 +192,86 @@
 
     // Gauge
     if (gaugeChart) gaugeChart.destroy();
-    const ctx = document.getElementById('gaugeChart
+    const ctx = document.getElementById('gaugeChart').getContext('2d');
+    gaugeChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {labels, datasets: [{data: valores, backgroundColor: colores, borderWidth: 3, borderColor: '#000'}]},
+      options: {
+        responsive: true,
+        plugins: {legend: {position:'bottom', labels:{color:'white', font:{size:14}}},
+                  tooltip: {callbacks:{label: ctx => `${ctx.label}: ${ctx.raw.toFixed(0)}€`}}}
+      }
+    });
+  }
+
+  function save() {
+    data.nombre = document.getElementById('nombreViaje').value;
+    data.inicio = document.getElementById('fechaInicio').value;
+    data.fin = document.getElementById('fechaFin').value;
+    data.km = +document.getElementById('km').value || 0;
+    data.precioGasoil = +document.getElementById('precioGasoil').value || 0;
+    data.consumo100 = +document.getElementById('consumo100').value || 0;
+    localStorage.setItem('caracolaV6', JSON.stringify(data));
+  }
+
+  // EXPORTAR A TU GOOGLE SHEET (URL real tuya)
+  function exportarGoogleSheets() {
+    const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
+    const fila = [
+      new Date().toISOString().split('T')[0],
+      data.nombre || 'Sin nombre',
+      data.inicio,
+      data.fin,
+      data.days,
+      data.km || 0,
+      ...data.items.map(it => (it.fixed ? it.amount : it.amountPerDay*data.days).toFixed(0)),
+      total.toFixed(0)
+    ].join('|');
+
+    const url = `https://script.google.com/macros/s/AKfycbzgoKQZOEXI2XSgKTM9Zk7Vnd17oAMlv0tGtPQ4u2S5fJP-fi7kGH61VwrmEB5vnAC7wg/exec?data=${encodeURIComponent(fila)}`;
+
+    fetch(url)
+      .then(r=>r.text())
+      .then(()=>alert('¡Presupuesto guardado en tu Google Sheet histórica!'))
+      .catch(()=>alert('Error de conexión. Inténtalo de nuevo.'));
+  }
+
+  // Slider sincronizado
+  document.getElementById('slider').addEventListener('input', function(){
+    const v = this.value;
+    document.getElementById('sliderInput').value = v;
+    document.getElementById('editValue').textContent = v + '€';
+    document.getElementById('totalCat').textContent = (v * data.days).toFixed(0);
+  });
+  document.getElementById('sliderInput').addEventListener('input', function(){
+    let v = +this.value; if(v>200) v=200; if(v<0) v=0;
+    document.getElementById('slider').value = v;
+    document.getElementById('editValue').textContent = v + '€';
+    document.getElementById('totalCat').textContent = (v * data.days).toFixed(0);
+  });
+
+  document.getElementById('copy').onclick = ()=>{
+    const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
+    const texto = `${data.nombre||'Viaje'}\n${data.inicio} → ${data.fin} (${data.days} días)\n\n` +
+      data.items.map(it=>`${it.name}: ${(it.fixed ? it.amount : it.amountPerDay*data.days).toFixed(0)}€`).join('\n') +
+      `\n\nTOTAL: ${total.toFixed(0)}€`;
+    navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
+  };
+
+  // Eventos
+  document.getElementById('nombreViaje').value = data.nombre;
+  document.getElementById('fechaInicio').value = data.inicio;
+  document.getElementById('fechaFin').value = data.fin;
+  document.getElementById('km').value = data.km;
+  document.getElementById('precioGasoil').value = data.precioGasoil;
+  document.getElementById('consumo100').value = data.consumo100;
+
+  ['fechaInicio','fechaFin'].forEach(id=>document.getElementById(id).addEventListener('change',calcDias));
+  ['km','precioGasoil','consumo100'].forEach(id=>document.getElementById(id).addEventListener('input',calcGasoil));
+  document.getElementById('nombreViaje').addEventListener('input',save);
+
+  calcDias();
+  calcGasoil();
+</script>
+</body>
+</html>
