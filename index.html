@@ -27,6 +27,9 @@
     .category-item{background:rgba(255,255,255,0.08);padding:18px;border-radius:16px;margin:12px 0;text-align:center;cursor:pointer;border:1px solid var(--border)}
     .category-item.fixed{opacity:0.7;cursor:default}
     canvas{max-width:100%;margin:30px 0}
+    .viaje-item{background:rgba(255,255,255,0.1);padding:18px;border-radius:16px;margin:12px 0;cursor:pointer;transition:.2s;position:relative}
+    .viaje-item:hover{background:rgba(255,255,255,0.18)}
+    .delete-btn{position:absolute;top:8px;right:8px;background:#8b0000;padding:4px 10px;border-radius:50%;font-size:0.9rem}
   </style>
 </head>
 <body>
@@ -67,13 +70,23 @@
     <button class="btn" onclick="go(4)">Ver resumen →</button>
   </div>
 
-  <!-- SLIDE 4 -->
+  <!-- SLIDE 4 - RESUMEN -->
   <div class="slide" id="slide4">
     <div id="resumenFinal"></div>
     <canvas id="gaugeChart" height="260"></canvas>
     <button class="btn-prev" onclick="go(3)">← Editar gastos</button>
+    <button class="btn" onclick="guardarPresupuestoActual()">GUARDAR ESTE VIAJE</button>
+    <button class="btn" onclick="go(5)">MIS VIAJES GUARDADOS →</button>
     <button class="btn" onclick="exportarGoogleSheets()">EXPORTAR A GOOGLE SHEETS</button>
     <button class="btn" id="copy">COPIAR RESUMEN</button>
+  </div>
+
+  <!-- SLIDE 5 - HISTORIAL -->
+  <div class="slide" id="slide5">
+    <h2 style="text-align:center;margin-bottom:20px">Mis viajes guardados</h2>
+    <div id="listaViajes"></div>
+    <button class="btn-prev" onclick="go(4)">← Volver al resumen</button>
+    <button class="btn" style="background:#8b0000" onclick="if(confirm('¿Borrar TODO el historial?')){localStorage.removeItem('viajesCaracola');listarViajes();}">BORRAR TODO EL HISTORIAL</button>
   </div>
 
   <!-- SLIDE Editor -->
@@ -90,7 +103,8 @@
 </div>
 
 <script>
-  const data = JSON.parse(localStorage.getItem('caracolaOK')) || {
+  // DATOS DEL PRESUPUESTO ACTUAL
+  let data = JSON.parse(localStorage.getItem('caracolaOK')) || {
     nombre:"", inicio:"", fin:"", days:1, km:0, precioGasoil:1.55, consumo100:9.5,
     items: [
       {name:"Gasolina (auto) ⛽", amount:0, fixed:true},
@@ -109,9 +123,11 @@
 
   function go(n) {
     document.querySelectorAll('.slide').forEach(s => s.classList.remove('active'));
-    document.getElementById(n === 'Editor' ? 'slideEditor' : 'slide' + n).classList.add('active');
+    const target = n === 'Editor' ? 'slideEditor' : n === 5 ? 'slide5' : 'slide' + n;
+    document.getElementById(target).classList.add('active');
     if (n === 3) renderLista();
     if (n === 4) renderResumen();
+    if (n === 5) listarViajes();
   }
 
   function calcDias() {
@@ -236,7 +252,56 @@
     localStorage.setItem('caracolaOK', JSON.stringify(data));
   }
 
-  // Exportación con tu NUEVA URL FINAL (probada y funcionando)
+  // ====================== NUEVO: HISTORIAL ======================
+  function guardarPresupuestoActual() {
+    const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
+    const nuevo = {
+      id: Date.now(),
+      fecha: new Date().toLocaleDateString('es-ES'),
+      total: total,
+      data: JSON.parse(JSON.stringify(data))
+    };
+    let viajes = JSON.parse(localStorage.getItem('viajesCaracola') || '[]');
+    viajes.push(nuevo);
+    localStorage.setItem('viajesCaracola', JSON.stringify(viajes));
+    alert('¡Viaje guardado en tu historial!');
+  }
+
+  function listarViajes() {
+    const cont = document.getElementById('listaViajes');
+    const viajes = JSON.parse(localStorage.getItem('viajesCaracola') || '[]');
+    if (viajes.length === 0) {
+      cont.innerHTML = '<p style="text-align:center;opacity:0.7">Aún no tienes viajes guardados</p>';
+      return;
+    }
+    cont.innerHTML = viajes.reverse().map(v => `
+      <div class="viaje-item" onclick="cargarViajeGuardado(${v.id})">
+        <div><b>${v.data.nombre || 'Sin nombre'}</b><br>
+        <small>${v.data.inicio} → ${v.data.fin} • ${v.data.days} días • ${v.data.km} km • ${v.fecha}</small></div>
+        <div style="text-align:right"><b>${v.total.toFixed(0)}€</b></div>
+        <div class="delete-btn" onclick="event.stopPropagation();borrarViaje(${v.id})">✕</div>
+      </div>
+    `).join('');
+  }
+
+  window.cargarViajeGuardado = function(id) {
+    const viajes = JSON.parse(localStorage.getItem('viajesCaracola') || '[]');
+    const viaje = viajes.find(v => v.id === id);
+    if (!viaje) return;
+    data = viaje.data;
+    localStorage.setItem('caracolaOK', JSON.stringify(data));
+    location.reload();
+  };
+
+  window.borrarViaje = function(id) {
+    if (!confirm('¿Borrar este viaje del historial?')) return;
+    let viajes = JSON.parse(localStorage.getItem('viajesCaracola') || '[]');
+    viajes = viajes.filter(v => v.id !== id);
+    localStorage.setItem('viajesCaracola', JSON.stringify(viajes));
+    listarViajes();
+  };
+
+  // ====================== EXPORTAR SHEETS ======================
   function exportarGoogleSheets() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const fila = [
@@ -249,17 +314,15 @@
       ...data.items.map(it => (it.fixed ? it.amount : it.amountPerDay*data.days).toFixed(0)),
       total.toFixed(0)
     ];
-
     const url = 'https://script.google.com/macros/s/AKfycby3hKX15Jy4etOMuWdWztpm4bVvcoM-4bcQ_Lw13DQU-2eFlhlF9JvHiSzAhkbX8eYXjQ/exec';
     const params = new URLSearchParams();
     params.append('data', fila.join('|'));
-
     fetch(url + '?' + params.toString(), {method: 'GET'})
       .then(() => alert('¡Presupuesto guardado correctamente en tu hoja!'))
       .catch(() => alert('Guardado OK. Revisa la hoja en 5-10 segundos.'));
   }
 
-  // Slider y copy
+  // Slider + copy + eventos
   document.getElementById('slider').addEventListener('input', function(){
     const v = this.value;
     document.getElementById('sliderInput').value = v;
@@ -281,7 +344,7 @@
     navigator.clipboard.writeText(texto).then(()=>alert('¡Resumen copiado!'));
   };
 
-  // Cargar datos
+  // Cargar datos guardados
   document.getElementById('nombreViaje').value = data.nombre;
   document.getElementById('fechaInicio').value = data.inicio;
   document.getElementById('fechaFin').value = data.fin;
