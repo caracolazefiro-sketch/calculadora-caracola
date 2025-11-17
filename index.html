@@ -236,7 +236,7 @@
     localStorage.setItem('caracolaOK', JSON.stringify(data));
   }
 
-  // ← AQUÍ ESTÁ LA EXPORTACIÓN CORREGIDA Y 100 % FUNCIONANDO
+  // Exportación con tu NUEVA URL (desplegada correctamente)
   function exportarGoogleSheets() {
     const total = data.items.reduce((s,it)=>s + (it.fixed ? it.amount : it.amountPerDay*data.days),0);
     const fila = [
@@ -250,8 +250,8 @@
       total.toFixed(0)
     ];
 
-    // TU URL real + formato que espera tu script
-    const url = 'https://script.google.com/macros/s/AKfycbzgoKQZOEXI2XSgKTM9Zk7Vnd17oAMlv0tGtPQ4u2S5fJP-fi7kGH61VwrmEB5vnAC7wg/exec';
+    // TU NUEVA URL + formato correcto
+    const url = 'https://script.google.com/macros/s/AKfycby3EwRziQLQPF5UvoErkM4sboje8BgnxA2hNJC9duPm_aHkf60GYnWS1a1_qxT1uZl2Kg/exec';
     const params = new URLSearchParams();
     params.append('data', fila.join('|'));
 
@@ -260,7 +260,7 @@
       .catch(() => alert('Guardado OK (no-cors). Revisa la hoja en 5-10 segundos.'));
   }
 
-  // Slider y copy (igual que antes)
+  // Slider y copy (igual)
   document.getElementById('slider').addEventListener('input', function(){
     const v = this.value;
     document.getElementById('sliderInput').value = v;
